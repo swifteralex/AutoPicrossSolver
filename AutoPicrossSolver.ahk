@@ -1,10 +1,28 @@
 ﻿^j::
 
-; Run nonogram-solver and generate output file
+; Take a screenshot of the Picross Touch window and save it as image.png
+CaptureScreen()
+
+; Run main.py to collect puzzle data from image
+RunWait cmd.exe /c "python main.py",,Hide
+FileDelete image.png
+
+; Read and then delete contents from puzzle_values.txt
+FileRead, Contents, puzzle_values.txt
+values := StrSplit(Contents, ",")
+start_x := values[1]
+start_y := values[2]
+pixel_width := values[3]
+puzzle_size := values[4]
+FileDelete puzzle_values.txt
+
+; Run nonogram-solver using generated input.json file and generate output file
 RunWait cmd.exe /c "npx nonogram-solver input.json",,Hide
+FileDelete input.json
 
 ; Read contents from nonogram-solver's generated file
 FileRead, Contents, output/input.svg
+FileRemoveDir output, 1
 FoundPos := InStr(Contents, "<use xlink")
 Cut := SubStr(Contents, FoundPos)
 
@@ -24,12 +42,6 @@ While (i < CutLen - 1) {
 	i := i + 1
 }
 
-; Puzzle values
-start_x := 748
-start_y := 328
-pixel_width := 45.9
-puzzle_size := 15
-
 ; Using arr and puzzle values, automatically fill in the puzzle
 x := start_x
 y := start_y
@@ -44,7 +56,7 @@ Loop, %puzzle_size% {
 			if (hit_count > 0) {
 				MouseMove, x, y
 				Send, {LButton down}
-				Sleep, 22
+				Sleep, 24
 				loop_count := hit_count - 1
 				Loop, %loop_count% {
 					x := x + pixel_width
@@ -64,4 +76,50 @@ Loop, %puzzle_size% {
 	}
 }
 
+CaptureScreen(sFile = "image.png", nQuality = "")
+{
+	WinGetPos, nL, nT, nW, nH, A
+
+	mDC := DllCall("CreateCompatibleDC", "ptr", 0, "ptr")
+	hBM := CreateDIBSection(mDC, nW, nH)
+	oBM := DllCall("SelectObject", "ptr", mDC, "ptr", hBM, "ptr")
+	hDC := DllCall("GetDC", "ptr", 0, "ptr")
+	DllCall("BitBlt", "ptr", mDC, "int", 0, "int", 0, "int", nW, "int", nH, "ptr", hDC, "int", nL, "int", nT, "Uint", 0x40CC0020)
+	DllCall("ReleaseDC", "ptr", 0, "ptr", hDC)
+	DllCall("SelectObject", "ptr", mDC, "ptr", oBM)
+	DllCall("DeleteDC", "ptr", mDC)
+	Convert(hBM, sFile, nQuality), DllCall("DeleteObject", "ptr", hBM)
+}
+
+Convert(sFileFr = "", sFileTo = "", nQuality = "")
+{
+	SplitPath, sFileTo, , sDirTo, sExtTo, sNameTo
+	DllCall("LoadLibrary", "str", "gdiplus.dll", "ptr")
+	VarSetCapacity(si, 16, 0), si := Chr(1)
+	DllCall("gdiplus\GdiplusStartup", "UintP", pToken, "ptr", &si, "ptr", 0)
+	DllCall("gdiplus\GdipCreateBitmapFromHBITMAP", "ptr", sFileFr, "ptr", 0, "ptr*", pImage)
+	DllCall("gdiplus\GdipGetImageEncodersSize", "UintP", nCount, "UintP", nSize)
+	VarSetCapacity(ci,nSize,0)
+	DllCall("gdiplus\GdipGetImageEncoders", "Uint", nCount, "Uint", nSize, "ptr", &ci)
+	struct_size := 48+7*A_PtrSize, offset := 32 + 3*A_PtrSize, pCodec := &ci - struct_size
+	Loop, %	nCount
+		If InStr(StrGet(Numget(offset + (pCodec+=struct_size)), "utf-16") , "." . sExtTo)
+			break
+
+	DllCall("gdiplus\GdipSaveImageToFile", "ptr", pImage, "wstr", sFileTo, "ptr", pCodec, "ptr", pParam)
+	DllCall("gdiplus\GdiplusShutdown" , "Uint", pToken)
+	DllCall("FreeLibrary", "ptr", hGdiPlus)
+}
+
+CreateDIBSection(hDC, nW, nH, bpp = 32, ByRef pBits = "")
+{
+	VarSetCapacity(bi, 40, 0)
+	NumPut(40, bi, "uint")
+	NumPut(nW, bi, 4, "int")
+	NumPut(nH, bi, 8, "int")
+	NumPut(bpp, NumPut(1, bi, 12, "UShort"), 0, "Ushort")
+	Return DllCall("gdi32\CreateDIBSection", "ptr", hDC, "ptr", &bi, "Uint", 0, "UintP", pBits, "ptr", 0, "Uint", 0, "ptr")
+}
+
+Escape::ExitApp
 return
