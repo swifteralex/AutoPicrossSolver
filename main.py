@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import os
 import pickle
 
 img = cv2.imread("image.png")
@@ -15,18 +14,16 @@ while imgGray[y][x] == background_color:
     y -= 1
 while imgGray[y][x + 1] != background_color:
     x += 1
+lower_right_border = [x - 1, y - 1]
 while imgGray[y][x] < 150:
     x -= 1
     y -= 1
 lower_right = [x, y]
-
-# Get upper_left point of the puzzle
-x = round(width / 2)
-y = 0
-background_color = imgGray[y][x]
-while imgGray[y][x] == background_color:
-    y += 1
-while imgGray[y][x - 1] != background_color:
+x = lower_right_border[0]
+y = lower_right_border[1]
+while imgGray[y - 1][x] == imgGray[y][x]:
+    y -= 1
+while imgGray[y][x - 1] == imgGray[y][x]:
     x -= 1
 while imgGray[y][x] != 255:
     x += 1

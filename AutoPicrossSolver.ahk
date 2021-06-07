@@ -76,6 +76,9 @@ Loop, %puzzle_size% {
 	}
 }
 
+return
+
+; Functions for taking a screenshot
 CaptureScreen(sFile = "image.png", nQuality = "")
 {
 	WinGetPos, nL, nT, nW, nH, A
@@ -120,6 +123,3 @@ CreateDIBSection(hDC, nW, nH, bpp = 32, ByRef pBits = "")
 	NumPut(bpp, NumPut(1, bi, 12, "UShort"), 0, "Ushort")
 	Return DllCall("gdi32\CreateDIBSection", "ptr", hDC, "ptr", &bi, "Uint", 0, "UintP", pBits, "ptr", 0, "Uint", 0, "ptr")
 }
-
-Escape::ExitApp
-return
