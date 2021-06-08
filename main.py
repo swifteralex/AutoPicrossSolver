@@ -6,6 +6,7 @@ import pickle
 img = cv2.imread("image.png")
 imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 height, width = imgGray.shape
+print("Finished reading image")
 
 # Get coord for the lower_right_border point of the puzzle
 x = round(width / 2)
@@ -17,7 +18,7 @@ while imgGray[y][x + 2] != background_color:
     x += 1
 lower_right_border = [x, y]
 
-# Get coord for the upper_left point
+# Get coord for the upper_left point and background color of the top left box
 while imgGray[y - 1][x] == imgGray[y][x]:
     y -= 1
 while imgGray[y][x - 1] == imgGray[y][x]:
@@ -28,18 +29,25 @@ while imgGray[y][x] != box_color:
     y += 1
 upper_left = [x, y]
 
-# Get anchor point of the puzzle (top left of grid)
+# Get anchor points of the puzzle (top left of grid), clicking point, and grid cell colors
 while imgGray[y + 1][x] == box_color:
     y += 1
 while imgGray[y][x + 1] == box_color:
     x += 1
-anchor_point = [x, y]
-
-# Get the grid cell colors
-cell_color1 = imgGray[y + 17][x + 17]
-while imgGray[y][x] == cell_color1:
-    y += 1
+anchor_point_box = [x, y]
+x += 17
+y += 17
+cell_color1 = imgGray[y][x]
+while imgGray[y][x - 1] == cell_color1:
+    x -= 1
+while imgGray[y - 1][x] == cell_color1:
+    y -= 1
+anchor_point_grid = [x, y]
+while imgGray[y][x + 1] == cell_color1:
     x += 1
+while imgGray[y + 1][x] == cell_color1:
+    y += 1
+click_point = [round((x + anchor_point_grid[0]) / 2), round((y + anchor_point_grid[1]) / 2)]
 cell_color2 = imgGray[y + 15][x + 15]
 
 # Get coord for the lower_right point
@@ -50,21 +58,11 @@ while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
     y -= 1
 lower_right = [x, y]
 
-# Get the point inside of the first box in the grid
-x = anchor_point[0]
-y = anchor_point[1]
-while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
-    x += 1
-    y += 1
-box_upper_left = [x, y]
-while imgGray[y + 1][x + 1] == cell_color1 or imgGray[y + 1][x + 1] == cell_color2:
-    x += 1
-    y += 1
-click_point = [round((box_upper_left[0] + x) / 2), round((box_upper_left[1] + y) / 2)]
-
 # Get puzzle size and the maximum number of clues in a column/row
 puzzle_size = 0
 white_spaces = 0
+x = anchor_point_grid[0]
+y = anchor_point_grid[1]
 while imgGray[y][x] != 0:
     while imgGray[y][x] == cell_color1 or imgGray[y][x] == cell_color2:
         white_spaces += 1
@@ -72,23 +70,17 @@ while imgGray[y][x] != 0:
     while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2 and imgGray[y][x] != 0:
         x += 1
     puzzle_size += 1
-white_spaces += (click_point[0] - box_upper_left[0])
 white_spaces += puzzle_size
-number_side = white_spaces/puzzle_size
-column_height = anchor_point[1] - upper_left[1] + 1
-clues_in_column = round(column_height / number_side)
-row_width = anchor_point[0] - upper_left[0] + 1
-clues_in_row = round(row_width / number_side)
+clue_side_length = white_spaces / puzzle_size
+column_height = anchor_point_box[1] - upper_left[1] + 1
+clues_in_column = round(column_height / clue_side_length)
+row_width = anchor_point_box[0] - upper_left[0] + 1
+clues_in_row = round(row_width / clue_side_length)
 
 # Get an array of images for all of the column clues and row clues
 images = []
-x = anchor_point[0]
-y = anchor_point[1]
-while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
-    x += 1
-y += 1
-while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
-    y += 1
+x = anchor_point_grid[0]
+y = anchor_point_grid[1]
 while imgGray[y][x] != 0:
     start_x = x
     while imgGray[y][x] == cell_color1 or imgGray[y][x] == cell_color2:
@@ -101,13 +93,8 @@ while imgGray[y][x] != 0:
         images.append(clue_img)
     while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2 and imgGray[y][x] != 0:
         x += 1
-x = anchor_point[0]
-y = anchor_point[1]
-while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
-    y += 1
-x += 1
-while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
-    x += 1
+x = anchor_point_grid[0]
+y = anchor_point_grid[1]
 while imgGray[y][x] != 0:
     start_y = y
     while imgGray[y][x] == cell_color1 or imgGray[y][x] == cell_color2:
@@ -120,16 +107,19 @@ while imgGray[y][x] != 0:
         images.append(clue_img)
     while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2 and imgGray[y][x] != 0:
         y += 1
+print("Finished registering image")
 
 # Preprocess clue images
 for i in range(0, len(images)):
     images[i] = cv2.resize(images[i], (20, 20), interpolation=cv2.INTER_AREA)
     thresh, images[i] = cv2.threshold(images[i], 127, 255, cv2.THRESH_BINARY)
     images[i] = cv2.equalizeHist(images[i])
+print("Finished pre-processing clue images")
 
 # Turn row_images and column_images into arrays of ints using computer vision
 pickle_in = open("model_trained.p", "rb")
 model = pickle.load(pickle_in)
+print("Finished loading model")
 clues = []
 for i in images:
     # check if blank space
@@ -181,6 +171,7 @@ for i in images:
     predict_this = input_img.reshape(1, 20, 20, 1)
     class_index = int(model.predict_classes(predict_this))
     clues.append(class_index)
+print("Finished reading clues")
 
 # Write clue array to a .json file
 f = open("input.json", "w")
@@ -225,6 +216,7 @@ f.close()
 
 # Write puzzle values to a text file
 f = open("puzzle_values.txt", "w")
-pixel_width = (lower_right[0] - anchor_point[0]) / puzzle_size
+pixel_width = (lower_right[0] - anchor_point_grid[0]) / puzzle_size
 f.write(str(click_point[0]) + "," + str(click_point[1]) + "," + str(pixel_width) + "," + str(puzzle_size))
 f.close()
+print("Finished writing puzzle data to files")
