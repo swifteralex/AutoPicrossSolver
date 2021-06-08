@@ -56,7 +56,7 @@ Loop, %puzzle_size% {
 			if (hit_count > 0) {
 				MouseMove, x, y
 				Send, {LButton down}
-				Sleep, 24
+				Sleep, 25
 				loop_count := hit_count - 1
 				Loop, %loop_count% {
 					x := x + pixel_width

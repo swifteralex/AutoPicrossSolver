@@ -2,47 +2,62 @@ import cv2
 import numpy as np
 import pickle
 
+# Read screenshotted image
 img = cv2.imread("image.png")
 imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 height, width = imgGray.shape
 
-# Get lower_right point of the puzzle
+# Get coord for the lower_right_border point of the puzzle
 x = round(width / 2)
-y = height - 1
+y = height - 2
 background_color = imgGray[y][x]
-while imgGray[y][x] == background_color:
+while imgGray[y + 1][x] == background_color:
     y -= 1
-while imgGray[y][x + 1] != background_color:
+while imgGray[y][x + 2] != background_color:
     x += 1
-lower_right_border = [x - 1, y - 1]
-while imgGray[y][x] < 150:
-    x -= 1
-    y -= 1
-lower_right = [x, y]
-x = lower_right_border[0]
-y = lower_right_border[1]
+lower_right_border = [x, y]
+
+# Get coord for the upper_left point
 while imgGray[y - 1][x] == imgGray[y][x]:
     y -= 1
 while imgGray[y][x - 1] == imgGray[y][x]:
     x -= 1
-while imgGray[y][x] != 255:
+box_color = imgGray[y + 40][x + 40]
+while imgGray[y][x] != box_color:
     x += 1
     y += 1
 upper_left = [x, y]
 
 # Get anchor point of the puzzle (top left of grid)
-while imgGray[y + 1][x] == 255:
+while imgGray[y + 1][x] == box_color:
     y += 1
-while imgGray[y][x + 1] == 255:
+while imgGray[y][x + 1] == box_color:
     x += 1
 anchor_point = [x, y]
 
+# Get the grid cell colors
+cell_color1 = imgGray[y + 17][x + 17]
+while imgGray[y][x] == cell_color1:
+    y += 1
+    x += 1
+cell_color2 = imgGray[y + 15][x + 15]
+
+# Get coord for the lower_right point
+x = lower_right_border[0]
+y = lower_right_border[1]
+while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
+    x -= 1
+    y -= 1
+lower_right = [x, y]
+
 # Get the point inside of the first box in the grid
-while imgGray[y][x] != 216 and imgGray[y][x] != 235:
+x = anchor_point[0]
+y = anchor_point[1]
+while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
     x += 1
     y += 1
 box_upper_left = [x, y]
-while imgGray[y + 1][x + 1] == 216 or imgGray[y + 1][x + 1] == 235:
+while imgGray[y + 1][x + 1] == cell_color1 or imgGray[y + 1][x + 1] == cell_color2:
     x += 1
     y += 1
 click_point = [round((box_upper_left[0] + x) / 2), round((box_upper_left[1] + y) / 2)]
@@ -51,10 +66,10 @@ click_point = [round((box_upper_left[0] + x) / 2), round((box_upper_left[1] + y)
 puzzle_size = 0
 white_spaces = 0
 while imgGray[y][x] != 0:
-    while imgGray[y][x] == 216 or imgGray[y][x] == 235:
+    while imgGray[y][x] == cell_color1 or imgGray[y][x] == cell_color2:
         white_spaces += 1
         x += 1
-    while imgGray[y][x] != 216 and imgGray[y][x] != 235 and imgGray[y][x] != 0:
+    while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2 and imgGray[y][x] != 0:
         x += 1
     puzzle_size += 1
 white_spaces += (click_point[0] - box_upper_left[0])
@@ -68,36 +83,42 @@ clues_in_row = round(row_width / number_side)
 # Get an array of images for all of the column clues and row clues
 images = []
 x = anchor_point[0]
-y = upper_left[1]
-while imgGray[y][x] != 216 and imgGray[y][x] != 235:
-    x += 1
-while imgGray[y][x] != 0:
-    start_x = x
-    while imgGray[y][x] == 216 or imgGray[y][x] == 235:
-        x += 1
-    for i in range(0, clues_in_column):
-        start_y = round(y + i * (column_height / clues_in_column))
-        end_x = x
-        end_y = round(y + (i + 1) * (column_height / clues_in_column))
-        clue_img = imgGray[start_y:end_y, start_x:end_x]
-        images.append(clue_img)
-    while imgGray[y][x] != 216 and imgGray[y][x] != 235 and imgGray[y][x] != 0:
-        x += 1
-x = upper_left[0]
 y = anchor_point[1]
-while imgGray[y][x] != 216 and imgGray[y][x] != 235:
+while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
+    x += 1
+y += 1
+while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
     y += 1
 while imgGray[y][x] != 0:
-    start_y = y
-    while imgGray[y][x] == 216 or imgGray[y][x] == 235:
-        y += 1
-    for i in range(0, clues_in_row):
-        start_x = round(x + i * (row_width / clues_in_row))
-        end_y = y
-        end_x = round(x + (i + 1) * (row_width / clues_in_row))
+    start_x = x
+    while imgGray[y][x] == cell_color1 or imgGray[y][x] == cell_color2:
+        x += 1
+    for i in range(0, clues_in_column):
+        start_y = round(upper_left[1] + i * (column_height / clues_in_column))
+        end_x = x
+        end_y = round(upper_left[1] + (i + 1) * (column_height / clues_in_column))
         clue_img = imgGray[start_y:end_y, start_x:end_x]
         images.append(clue_img)
-    while imgGray[y][x] != 216 and imgGray[y][x] != 235 and imgGray[y][x] != 0:
+    while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2 and imgGray[y][x] != 0:
+        x += 1
+x = anchor_point[0]
+y = anchor_point[1]
+while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
+    y += 1
+x += 1
+while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2:
+    x += 1
+while imgGray[y][x] != 0:
+    start_y = y
+    while imgGray[y][x] == cell_color1 or imgGray[y][x] == cell_color2:
+        y += 1
+    for i in range(0, clues_in_row):
+        start_x = round(upper_left[0] + i * (row_width / clues_in_row))
+        end_y = y
+        end_x = round(upper_left[0] + (i + 1) * (row_width / clues_in_row))
+        clue_img = imgGray[start_y:end_y, start_x:end_x]
+        images.append(clue_img)
+    while imgGray[y][x] != cell_color1 and imgGray[y][x] != cell_color2 and imgGray[y][x] != 0:
         y += 1
 
 # Preprocess clue images
