@@ -11,22 +11,26 @@ print("Finished reading image")
 # Get coord for the lower_right_border point of the puzzle
 x = round(width / 2)
 y = height - 2
-background_color = imgGray[y][x]
-while imgGray[y + 1][x] == background_color:
+background_color_bottom = imgGray[y][x]
+while imgGray[y + 1][x] == background_color_bottom:
     y -= 1
-while imgGray[y][x + 2] != background_color:
+while imgGray[y][x + 2] != background_color_bottom:
     x += 1
 lower_right_border = [x, y]
 
 # Get coord for the upper_left point and background color of the top left box
-while imgGray[y - 1][x] == imgGray[y][x]:
+background_color_top = imgGray[0][round(width / 2)]
+while imgGray[y - 1][x] != background_color_top:
     y -= 1
-while imgGray[y][x - 1] == imgGray[y][x]:
+while imgGray[y][x - 1] != background_color_top:
     x -= 1
-box_color = imgGray[y + 40][x + 40]
-while imgGray[y][x] != box_color:
-    x += 1
-    y += 1
+x += 40
+y += 40
+box_color = imgGray[y][x]
+while imgGray[y - 1][x] == box_color:
+    y -= 1
+while imgGray[y][x - 1] == box_color:
+    x -= 1
 upper_left = [x, y]
 
 # Get anchor points of the puzzle (top left of grid), clicking point, and grid cell colors
@@ -116,61 +120,45 @@ for i in range(0, len(images)):
     images[i] = cv2.equalizeHist(images[i])
 print("Finished pre-processing clue images")
 
-# Turn row_images and column_images into arrays of ints using computer vision
+# Turn row_images and column_images into arrays of ints using machine learning model
 pickle_in = open("model_trained.p", "rb")
 model = pickle.load(pickle_in)
 print("Finished loading model")
+
+
+def predict_clue_class(input_img):
+    input_img = input_img / 255
+    reshaped = input_img.reshape(1, 20, 20, 1)
+    return int(model.predict_classes(reshaped))
+
+
 clues = []
+zeros = np.full((20, 5), 255)
 for i in images:
-    # check if blank space
+    # check if blank space or 2-digit number
     num_black_pixels = 0
-    for r in range(0, 20):
-        for c in range(0, 20):
-            if i[r][c] == 0:
-                num_black_pixels += 1
-    if num_black_pixels < 10:
-        clues.append(-1)
-        continue
-    # check if 2 digit number
     left_column_hit = -1
     right_column_hit = -1
     for c in range(0, 20):
         for r in range(0, 20):
             if i[r][c] == 0:
-                left_column_hit = c
-                break
-        if left_column_hit != -1:
-            break
-    for c in range(0, 20):
-        for r in range(0, 20):
+                left_column_hit = c if left_column_hit == -1 else left_column_hit
+                num_black_pixels += 1
             if i[r][19 - c] == 0:
-                right_column_hit = 19 - c
-                break
-        if right_column_hit != -1:
-            break
+                right_column_hit = 19 - c if right_column_hit == -1 else right_column_hit
+    if num_black_pixels < 10:
+        clues.append(-1)
+        continue
     if right_column_hit - left_column_hit > 15:
-        zeros = np.copy(i[0:20, 0:5])
-        for r in range(0, 20):
-            for c in range(0, 5):
-                zeros[r][c] = 255
         left_img = i[0:20, 0:10]
         left_img = np.hstack((zeros, left_img, zeros))
         right_img = i[0:20, 10:20]
         right_img = np.hstack((zeros, right_img, zeros))
-        input_img = left_img / 255
-        predict_this = input_img.reshape(1, 20, 20, 1)
-        left_digit = int(model.predict_classes(predict_this))
-        input_img = right_img / 255
-        predict_this = input_img.reshape(1, 20, 20, 1)
-        right_digit = int(model.predict_classes(predict_this))
-        two_digit_num = 10 * left_digit + right_digit
+        two_digit_num = 10 * predict_clue_class(left_img) + predict_clue_class(right_img)
         clues.append(two_digit_num)
         continue
     # append single digit to clues
-    input_img = i / 255
-    predict_this = input_img.reshape(1, 20, 20, 1)
-    class_index = int(model.predict_classes(predict_this))
-    clues.append(class_index)
+    clues.append(predict_clue_class(i))
 print("Finished reading clues")
 
 # Write clue array to a .json file
