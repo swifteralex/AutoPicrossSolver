@@ -116,7 +116,7 @@ print("Finished registering image")
 # Preprocess clue images
 for i in range(0, len(images)):
     images[i] = cv2.resize(images[i], (20, 20), interpolation=cv2.INTER_AREA)
-    thresh, images[i] = cv2.threshold(images[i], 127, 255, cv2.THRESH_BINARY)
+    thresh, images[i] = cv2.threshold(images[i], min(cell_color1, cell_color2) - 50, 255, cv2.THRESH_BINARY)
     images[i] = cv2.equalizeHist(images[i])
 print("Finished pre-processing clue images")
 
@@ -146,10 +146,24 @@ for i in images:
                 num_black_pixels += 1
             if i[r][19 - c] == 0:
                 right_column_hit = 19 - c if right_column_hit == -1 else right_column_hit
+
+    # if square is blank
     if num_black_pixels < 10:
         clues.append(-1)
         continue
+
+    # run extra check for two digit numbers (sometimes black pixels will bleed onto single-digit images)
+    left_verification = False
+    right_verification = False
     if right_column_hit - left_column_hit > 15:
+        for r in range(0, 20):
+            if i[r][left_column_hit + 1] == 0:
+                left_verification = True
+            if i[r][right_column_hit - 1] == 0:
+                right_verification = True
+
+    # if square is two digits
+    if right_column_hit - left_column_hit > 15 and left_verification and right_verification:
         left_img = i[0:20, 0:10]
         left_img = np.hstack((zeros, left_img, zeros))
         right_img = i[0:20, 10:20]
@@ -157,9 +171,10 @@ for i in images:
         two_digit_num = 10 * predict_clue_class(left_img) + predict_clue_class(right_img)
         clues.append(two_digit_num)
         continue
+
     # append single digit to clues
     clues.append(predict_clue_class(i))
-print("Finished reading clues")
+print("Finished predicting clue images")
 
 # Write clue array to a .json file
 f = open("input.json", "w")
