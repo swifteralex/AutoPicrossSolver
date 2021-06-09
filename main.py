@@ -116,7 +116,7 @@ print("Finished registering image")
 # Preprocess clue images
 for i in range(0, len(images)):
     images[i] = cv2.resize(images[i], (20, 20), interpolation=cv2.INTER_AREA)
-    thresh, images[i] = cv2.threshold(images[i], min(cell_color1, cell_color2) - 50, 255, cv2.THRESH_BINARY)
+    thresh, images[i] = cv2.threshold(images[i], min(cell_color1, cell_color2) - 20, 255, cv2.THRESH_BINARY)
     images[i] = cv2.equalizeHist(images[i])
 print("Finished pre-processing clue images")
 
