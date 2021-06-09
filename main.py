@@ -148,28 +148,18 @@ for i in images:
     for c in range(0, 20):
         for r in range(0, 20):
             if i[r][c] == 0:
-                left_column_hit = c if left_column_hit == -1 else left_column_hit
+                left_column_hit = c if (left_column_hit == -1 and c != 0) else left_column_hit
                 num_black_pixels += 1
             if i[r][19 - c] == 0:
-                right_column_hit = 19 - c if right_column_hit == -1 else right_column_hit
+                right_column_hit = 19 - c if (right_column_hit == -1 and c != 19) else right_column_hit
 
     # if square is blank
     if num_black_pixels < 10:
         clues.append(-1)
         continue
 
-    # run extra check for two digit numbers (sometimes black pixels will bleed onto single-digit images)
-    left_verification = False
-    right_verification = False
-    if right_column_hit - left_column_hit > 15:
-        for r in range(0, 20):
-            if i[r][left_column_hit + 1] == 0:
-                left_verification = True
-            if i[r][right_column_hit - 1] == 0:
-                right_verification = True
-
     # if square is two digits
-    if right_column_hit - left_column_hit > 15 and left_verification and right_verification:
+    if right_column_hit - left_column_hit > 15:
         left_img = i[0:20, 0:10]
         left_img = np.hstack((zeros, left_img, zeros))
         right_img = i[0:20, 10:20]
