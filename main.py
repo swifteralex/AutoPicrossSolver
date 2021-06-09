@@ -129,6 +129,9 @@ print("Finished loading model")
 def predict_clue_class(input_img):
     input_img = input_img / 255
     reshaped = input_img.reshape(1, 20, 20, 1)
+    # if the model isn't completely sure, it's probably looking at a col/row with just a zero
+    if np.amax(model.predict(reshaped)) < 0.999:
+        return 0
     return int(model.predict_classes(reshaped))
 
 
