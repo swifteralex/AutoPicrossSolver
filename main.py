@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import pickle
+from tensorflow.keras.models import model_from_json
 
 # Read screenshotted image
 img = cv2.imread("image.png")
@@ -121,8 +121,11 @@ for i in range(0, len(images)):
 print("Finished pre-processing clue images")
 
 # Turn row_images and column_images into arrays of ints using machine learning model
-pickle_in = open("model_trained.p", "rb")
-model = pickle.load(pickle_in)
+json_file = open("model_trained.json", "r")
+loaded_model_json = json_file.read()
+json_file.close()
+model = model_from_json(loaded_model_json)
+model.load_weights("model.h5")
 print("Finished loading model")
 
 
