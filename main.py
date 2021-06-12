@@ -1,12 +1,15 @@
 import cv2
 import numpy as np
+import pyautogui
 from tensorflow.keras.models import model_from_json
 
-# Read screenshotted image
-img = cv2.imread("image.png")
+# Take a screenshot
+img = pyautogui.screenshot()
+img = np.array(img)
+img = img[:, :, ::-1]
 imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 height, width = imgGray.shape
-print("Finished reading image")
+print("Finished getting puzzle image")
 
 # Get coord for the lower_right_border point of the puzzle
 x = round(width / 2)

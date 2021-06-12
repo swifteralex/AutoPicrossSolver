@@ -6,4 +6,4 @@ pip install opencv-python==4.2.0.32
 pip install Keras==2.3.1
 pip install tensorflow==2.0.0
 pip install h5py==2.10.0
-
+pip install PyAutoGUI=0.9.52

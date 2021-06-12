@@ -1,11 +1,7 @@
 ﻿^j::
 
-; Take a screenshot of the Picross Touch window and save it as image.png
-CaptureScreen()
-
-; Run main.py to collect puzzle data from image
+; Run main.py to screenshot puzzle and collect puzzle data from image
 RunWait cmd.exe /c "python main.py",,Hide
-FileDelete image.png
 
 ; Read and then delete contents from puzzle_values.txt
 FileRead, Contents, puzzle_values.txt
@@ -77,49 +73,3 @@ Loop, %puzzle_size% {
 }
 
 return
-
-; Functions for taking a screenshot
-CaptureScreen(sFile = "image.png", nQuality = "")
-{
-	WinGetPos, nL, nT, nW, nH, A
-
-	mDC := DllCall("CreateCompatibleDC", "ptr", 0, "ptr")
-	hBM := CreateDIBSection(mDC, nW, nH)
-	oBM := DllCall("SelectObject", "ptr", mDC, "ptr", hBM, "ptr")
-	hDC := DllCall("GetDC", "ptr", 0, "ptr")
-	DllCall("BitBlt", "ptr", mDC, "int", 0, "int", 0, "int", nW, "int", nH, "ptr", hDC, "int", nL, "int", nT, "Uint", 0x40CC0020)
-	DllCall("ReleaseDC", "ptr", 0, "ptr", hDC)
-	DllCall("SelectObject", "ptr", mDC, "ptr", oBM)
-	DllCall("DeleteDC", "ptr", mDC)
-	Convert(hBM, sFile, nQuality), DllCall("DeleteObject", "ptr", hBM)
-}
-
-Convert(sFileFr = "", sFileTo = "", nQuality = "")
-{
-	SplitPath, sFileTo, , sDirTo, sExtTo, sNameTo
-	DllCall("LoadLibrary", "str", "gdiplus.dll", "ptr")
-	VarSetCapacity(si, 16, 0), si := Chr(1)
-	DllCall("gdiplus\GdiplusStartup", "UintP", pToken, "ptr", &si, "ptr", 0)
-	DllCall("gdiplus\GdipCreateBitmapFromHBITMAP", "ptr", sFileFr, "ptr", 0, "ptr*", pImage)
-	DllCall("gdiplus\GdipGetImageEncodersSize", "UintP", nCount, "UintP", nSize)
-	VarSetCapacity(ci,nSize,0)
-	DllCall("gdiplus\GdipGetImageEncoders", "Uint", nCount, "Uint", nSize, "ptr", &ci)
-	struct_size := 48+7*A_PtrSize, offset := 32 + 3*A_PtrSize, pCodec := &ci - struct_size
-	Loop, %	nCount
-		If InStr(StrGet(Numget(offset + (pCodec+=struct_size)), "utf-16") , "." . sExtTo)
-			break
-
-	DllCall("gdiplus\GdipSaveImageToFile", "ptr", pImage, "wstr", sFileTo, "ptr", pCodec, "ptr", pParam)
-	DllCall("gdiplus\GdiplusShutdown" , "Uint", pToken)
-	DllCall("FreeLibrary", "ptr", hGdiPlus)
-}
-
-CreateDIBSection(hDC, nW, nH, bpp = 32, ByRef pBits = "")
-{
-	VarSetCapacity(bi, 40, 0)
-	NumPut(40, bi, "uint")
-	NumPut(nW, bi, 4, "int")
-	NumPut(nH, bi, 8, "int")
-	NumPut(bpp, NumPut(1, bi, 12, "UShort"), 0, "Ushort")
-	Return DllCall("gdi32\CreateDIBSection", "ptr", hDC, "ptr", &bi, "Uint", 0, "UintP", pBits, "ptr", 0, "Uint", 0, "ptr")
-}
