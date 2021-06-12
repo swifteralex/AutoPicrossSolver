@@ -1,3 +1,4 @@
+import time
 import cv2
 import numpy as np
 import pyautogui
@@ -211,9 +212,35 @@ subprocess.run(["npx", "nonogram-solver", "input.json"],
 os.remove("input.json")
 print("Finished solving puzzle")
 
-# Write puzzle values to a text file
-f = open("puzzle_values.txt", "w")
-pixel_width = (lower_right[0] - anchor_point_grid[0]) / puzzle_size
-f.write(str(click_point[0]) + "," + str(click_point[1]) + "," + str(pixel_width) + "," + str(puzzle_size))
+# Get array of hits and misses from solver's output file
+f = open("output/input.svg", "r")
+lines = f.readlines()
+last_line = lines[-1]
+marks = []
+for i in range(0, len(last_line) - 1):
+    mark = last_line[i:(i + 2)]
+    if mark == "#h":
+        marks.append(True)
+        i += 50
+    elif mark == "#m":
+        marks.append(False)
+        i += 50
 f.close()
-print("Finished writing puzzle data to files")
+os.remove("output/input.svg")
+os.rmdir("output")
+
+# Using puzzle values and marks, automatically fill in the puzzle
+pixel_width = (lower_right[0] - anchor_point_grid[0]) / puzzle_size
+x = click_point[0]
+y = click_point[1]
+for r in range(0, puzzle_size):
+    for c in range(0, puzzle_size):
+        if marks[r * puzzle_size + c]:
+            pyautogui.moveTo(x, y, _pause=False)
+            pyautogui.mouseDown(_pause=False)
+            time.sleep(0.022)
+            pyautogui.mouseUp(_pause=False)
+        x += pixel_width
+    x = click_point[0]
+    y += pixel_width
+print("Done!")
