@@ -1,6 +1,6 @@
 ﻿^j::
 
-; Run main.py to screenshot puzzle and collect puzzle data from image
+; Run main.py to screenshot and solve puzzle
 RunWait cmd.exe /c "python main.py",,Hide
 
 ; Read and then delete contents from puzzle_values.txt
@@ -11,10 +11,6 @@ start_y := values[2]
 pixel_width := values[3]
 puzzle_size := values[4]
 FileDelete puzzle_values.txt
-
-; Run nonogram-solver using generated input.json file and generate output file
-RunWait cmd.exe /c "npx nonogram-solver input.json",,Hide
-FileDelete input.json
 
 ; Read contents from nonogram-solver's generated file
 FileRead, Contents, output/input.svg

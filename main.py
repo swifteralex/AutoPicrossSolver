@@ -1,7 +1,10 @@
 import cv2
 import numpy as np
 import pyautogui
+import subprocess
+import os
 from tensorflow.keras.models import model_from_json
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Take a screenshot
 img = pyautogui.screenshot()
@@ -175,7 +178,7 @@ for i in images:
     clues.append(predict_clue_class(i))
 print("Finished predicting clue images")
 
-# Write clue array to a .json file
+# Write clue array to a .json file and call solver
 f = open("input.json", "w")
 f.write("{\n  \"columns\": [\n")
 for i in range(0, 2 * puzzle_size):
@@ -201,6 +204,12 @@ for i in range(0, 2 * puzzle_size):
         f.write("  ],\n  \"rows\": [\n")
 f.write("  ]\n}")
 f.close()
+subprocess.run(["npx", "nonogram-solver", "input.json"],
+               shell=True,
+               stdout=subprocess.DEVNULL,
+               stderr=subprocess.DEVNULL)
+os.remove("input.json")
+print("Finished solving puzzle")
 
 # Write puzzle values to a text file
 f = open("puzzle_values.txt", "w")
