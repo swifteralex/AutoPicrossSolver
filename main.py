@@ -178,41 +178,27 @@ print("Finished predicting clue images")
 # Write clue array to a .json file
 f = open("input.json", "w")
 f.write("{\n  \"columns\": [\n")
-for i in range(0, puzzle_size):
+for i in range(0, 2 * puzzle_size):
+    len_clue_arr = clues_in_column if i < puzzle_size else clues_in_row
+    clue_diff = 0 if i < puzzle_size else puzzle_size * (clues_in_column - clues_in_row)
     f.write("    [")
-    for j in range(0, clues_in_column):
-        clue = clues[i * clues_in_column + j]
-        if clue == -1 and j == clues_in_column - 1:
+    for j in range(0, len_clue_arr):
+        clue = clues[clue_diff + i * len_clue_arr + j]
+        if clue == -1 and j == len_clue_arr - 1:
             f.write("0")
             break
         elif clue == -1:
             continue
         else:
             f.write(str(clue))
-            if j != clues_in_column - 1:
+            if j != len_clue_arr - 1:
                 f.write(", ")
     f.write("]")
-    if i != puzzle_size - 1:
+    if i != puzzle_size - 1 and i != 2 * puzzle_size - 1:
         f.write(",")
     f.write("\n")
-f.write("  ],\n  \"rows\": [\n")
-for i in range(0, puzzle_size):
-    f.write("    [")
-    for j in range(0, clues_in_row):
-        clue = clues[puzzle_size * clues_in_column + i * clues_in_row + j]
-        if clue == -1 and j == clues_in_row - 1:
-            f.write("0")
-            break
-        elif clue == -1:
-            continue
-        else:
-            f.write(str(clue))
-            if j != clues_in_row - 1:
-                f.write(", ")
-    f.write("]")
-    if i != puzzle_size - 1:
-        f.write(",")
-    f.write("\n")
+    if i == puzzle_size - 1:
+        f.write("  ],\n  \"rows\": [\n")
 f.write("  ]\n}")
 f.close()
 
