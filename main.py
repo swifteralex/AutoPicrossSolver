@@ -201,10 +201,8 @@ def solve(clues, clues_in_column, clues_in_row, puzzle_size):
             f.write("  ],\n  \"rows\": [\n")
     f.write("  ]\n}")
     f.close()
-    subprocess.run(["npx", "nonogram-solver", "input.json"],
-                   shell=True,
-                   stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL)
+    if subprocess.run(["npx", "nonogram-solver", "input.json"], capture_output=True, shell=True).returncode != 0:
+        raise RuntimeError("The solver wasn't able to create a solution.")
     os.remove("input.json")
 
     # Get array of hits and misses from solver's output file
@@ -223,6 +221,8 @@ def solve(clues, clues_in_column, clues_in_row, puzzle_size):
     f.close()
     os.remove("output/input.svg")
     os.rmdir("output")
+    if len(marks) < 25:
+        raise RuntimeError("The solved puzzle size was smaller than expected.")
     return marks
 
 
@@ -244,8 +244,8 @@ def on_press(key):
         except:
             print("!!! There was an error with reading the screenshotted image. Make sure"
                   " that Picross Touch is in full-screen and is in the highest possible"
-                  " resolution. If an error still occurs, try using only the Simple editor"
-                  " and pick a new theme.\n")
+                  " resolution with a completely empty puzzle grid in view. If an error"
+                  " still occurs, try using only the Simple editor and pick a new theme.\n")
             running = False
             return
         print("Finished registering image")
@@ -255,7 +255,23 @@ def on_press(key):
         print("Finished predicting clue images")
 
         # Using a solver, turn the clue array into an array of hits and misses
-        marks = solve(clues, clues_in_column, clues_in_row, puzzle_size)
+        try:
+            marks = solve(clues, clues_in_column, clues_in_row, puzzle_size)
+        except:
+            print("!!! The image was registered, but the program ran into a problem with"
+                  " the solver. Make sure that Picross Touch is in full-screen and is in"
+                  " the highest possible resolution with a completely empty puzzle grid"
+                  " in view. If an error still occurs, try using only the Simple editor"
+                  " and pick a new theme. If still an error occurs, there's likely an"
+                  " issue with the digit recognition code.\n")
+            if os.path.exists("input.json"):
+                os.remove("input.json")
+            if os.path.exists("output"):
+                if os.path.exists("output/input.svg"):
+                    os.remove("output/input.svg")
+                os.rmdir("output")
+            running = False
+            return
         print("Finished solving puzzle")
 
         # Using marks and pyautogui, automatically fill in the puzzle
@@ -266,7 +282,7 @@ def on_press(key):
                 if marks[r * puzzle_size + c]:
                     pyautogui.moveTo(x, y, _pause=False)
                     pyautogui.mouseDown(_pause=False)
-                    time.sleep(0.024)
+                    time.sleep(0.025)
                     pyautogui.mouseUp(_pause=False)
                 x += pixel_width
             x = click_point[0]
