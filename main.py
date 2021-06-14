@@ -10,6 +10,16 @@ from pynput import keyboard
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
+#########################################################
+#                   PROGRAM VARIABLES                   #
+
+click_speed = 0.028  # Time between each click in seconds
+exit_key = keyboard.Key.esc  # Key to exit the program
+start_key = keyboard.Key.enter  # Key to start the solver
+
+#########################################################
+
+
 def register_image(input_img):
     # Get coord for the lower_right_border point of the puzzle
     height, width = input_img.shape
@@ -219,11 +229,11 @@ def solve(clues, clues_in_column, clues_in_row, puzzle_size):
 
 
 def on_press(key):
-    if key == keyboard.Key.esc:
+    if key == exit_key:
         print("Exiting...")
         quit(0)
 
-    if key == keyboard.Key.enter:
+    if key == start_key:
         # Take a screenshot
         time_begin = datetime.datetime.now()
         img = pyautogui.screenshot()
@@ -290,7 +300,7 @@ def on_press(key):
                     pyautogui.moveTo(x, y, _pause=False)
                     pyautogui.mouseDown(_pause=False)
                     position1 = pyautogui.position()
-                    time.sleep(0.028)
+                    time.sleep(click_speed)
                     position2 = pyautogui.position()
                     pyautogui.mouseUp(_pause=False)
                     if position1 != position2:
@@ -310,6 +320,8 @@ loaded_model_json = json_file.read()
 json_file.close()
 model = model_from_json(loaded_model_json)
 model.load_weights("model.h5")
-print("Done loading modules and model. Solver is ready to be used on an empty full-screened Picross Touch grid.\n")
+print("Done loading modules and model. Solver is ready to be used. Press " +
+      str(start_key)[4:] + " on an empty, full-screened Picross Touch grid"
+      " to start the solver.\n")
 with keyboard.Listener(on_press=on_press) as listener:
     listener.join()
