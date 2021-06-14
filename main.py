@@ -4,6 +4,7 @@ import numpy as np
 import pyautogui
 import subprocess
 import os
+import datetime
 from tensorflow.keras.models import model_from_json
 from pynput import keyboard
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -232,13 +233,18 @@ def on_press(key):
         running = True
 
         # Take a screenshot
+        time_begin = datetime.datetime.now()
         img = pyautogui.screenshot()
         img = np.array(img)
         img = img[:, :, ::-1]
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        print("Finished getting puzzle image")
+        time_delta = datetime.datetime.now() - time_begin
+        ms_diff = int(time_delta.total_seconds() * 1000)
+        data = ["Finished getting puzzle image", str(ms_diff) + "ms"]
+        print("{:<32} {:>10}".format(*data))
 
         # Get important data from the screenshotted image
+        time_a = datetime.datetime.now()
         try:
             click_point, puzzle_size, clues_in_column, clues_in_row, pixel_width, images = register_image(img_gray)
         except:
@@ -248,13 +254,21 @@ def on_press(key):
                   " still occurs, try using only the Simple editor and pick a new theme.\n")
             running = False
             return
-        print("Finished registering image")
+        time_delta = datetime.datetime.now() - time_a
+        ms_diff = int(time_delta.total_seconds() * 1000)
+        data = ["Finished registering image", str(ms_diff) + "ms"]
+        print("{:<32} {:>10}".format(*data))
 
         # Turn clue image array into int array using a machine learning model
+        time_a = datetime.datetime.now()
         clues = read_clue_images(images)
-        print("Finished predicting clue images")
+        time_delta = datetime.datetime.now() - time_a
+        ms_diff = int(time_delta.total_seconds() * 1000)
+        data = ["Finished predicting clue images", str(ms_diff) + "ms"]
+        print("{:<32} {:>10}".format(*data))
 
         # Using a solver, turn the clue array into an array of hits and misses
+        time_a = datetime.datetime.now()
         try:
             marks = solve(clues, clues_in_column, clues_in_row, puzzle_size)
         except:
@@ -272,7 +286,10 @@ def on_press(key):
                 os.rmdir("output")
             running = False
             return
-        print("Finished solving puzzle")
+        time_delta = datetime.datetime.now() - time_a
+        ms_diff = int(time_delta.total_seconds() * 1000)
+        data = ["Finished solving puzzle", str(ms_diff) + "ms"]
+        print("{:<32} {:>10}".format(*data))
 
         # Using marks and pyautogui, automatically fill in the puzzle
         x = click_point[0]
@@ -282,12 +299,15 @@ def on_press(key):
                 if marks[r * puzzle_size + c]:
                     pyautogui.moveTo(x, y, _pause=False)
                     pyautogui.mouseDown(_pause=False)
-                    time.sleep(0.025)
+                    time.sleep(0.028)
                     pyautogui.mouseUp(_pause=False)
                 x += pixel_width
             x = click_point[0]
             y += pixel_width
-        print("Done!\n")
+        time_delta = datetime.datetime.now() - time_begin
+        ms_diff = int(time_delta.total_seconds() * 1000)
+        data = ["Done!", "Total: " + str(ms_diff) + "ms"]
+        print("{:<25} {:>17}".format(*data), "\n")
         running = False
 
 
