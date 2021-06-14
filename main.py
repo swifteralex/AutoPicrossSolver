@@ -10,15 +10,6 @@ from pynput import keyboard
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-json_file = open("model_trained.json", "r")
-loaded_model_json = json_file.read()
-json_file.close()
-model = model_from_json(loaded_model_json)
-model.load_weights("model.h5")
-print("Done loading modules and model. Solver is ready to be used.\n")
-running = False
-
-
 def register_image(input_img):
     # Get coord for the lower_right_border point of the puzzle
     height, width = input_img.shape
@@ -228,10 +219,11 @@ def solve(clues, clues_in_column, clues_in_row, puzzle_size):
 
 
 def on_press(key):
-    global running
-    if key == keyboard.Key.enter and not running:
-        running = True
+    if key == keyboard.Key.esc:
+        print("Exiting...")
+        quit(0)
 
+    if key == keyboard.Key.enter:
         # Take a screenshot
         time_begin = datetime.datetime.now()
         img = pyautogui.screenshot()
@@ -252,7 +244,6 @@ def on_press(key):
                   " that Picross Touch is in full-screen and is in the highest possible"
                   " resolution with a completely empty puzzle grid in view. If an error"
                   " still occurs, try using only the Simple editor and pick a new theme.\n")
-            running = False
             return
         time_delta = datetime.datetime.now() - time_a
         ms_diff = int(time_delta.total_seconds() * 1000)
@@ -284,7 +275,6 @@ def on_press(key):
                 if os.path.exists("output/input.svg"):
                     os.remove("output/input.svg")
                 os.rmdir("output")
-            running = False
             return
         time_delta = datetime.datetime.now() - time_a
         ms_diff = int(time_delta.total_seconds() * 1000)
@@ -299,8 +289,13 @@ def on_press(key):
                 if marks[r * puzzle_size + c]:
                     pyautogui.moveTo(x, y, _pause=False)
                     pyautogui.mouseDown(_pause=False)
+                    position1 = pyautogui.position()
                     time.sleep(0.028)
+                    position2 = pyautogui.position()
                     pyautogui.mouseUp(_pause=False)
+                    if position1 != position2:
+                        print("Detected mouse movement from the user. Stopping...\n")
+                        return
                 x += pixel_width
             x = click_point[0]
             y += pixel_width
@@ -308,8 +303,13 @@ def on_press(key):
         ms_diff = int(time_delta.total_seconds() * 1000)
         data = ["Done!", "Total: " + str(ms_diff) + "ms"]
         print("{:<25} {:>17}".format(*data), "\n")
-        running = False
 
 
+json_file = open("model_trained.json", "r")
+loaded_model_json = json_file.read()
+json_file.close()
+model = model_from_json(loaded_model_json)
+model.load_weights("model.h5")
+print("Done loading modules and model. Solver is ready to be used on an empty full-screened Picross Touch grid.\n")
 with keyboard.Listener(on_press=on_press) as listener:
     listener.join()
