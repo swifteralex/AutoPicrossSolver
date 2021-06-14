@@ -315,6 +315,11 @@ def on_press(key):
         print("{:<25} {:>17}".format(*data), "\n")
 
 
+if subprocess.run(["npx", "nonogram-solver", "--version"], capture_output=True, shell=True).returncode != 0:
+    print("!!! It doesn't look like the nonogram solver is installed. Please make"
+          " sure Node.js version 8 is installed, and if it is, install the solver"
+          " by typing \"npm install nonogram-solver\" in the command line.")
+    exit(1)
 json_file = open("model_trained.json", "r")
 loaded_model_json = json_file.read()
 json_file.close()
