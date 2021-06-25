@@ -1,7 +1,7 @@
 # AutoPicrossSolver
 A program that automatically solves Picross Touch levels with the press of one key.
 
-![AutoPicrossSolver Demo](demo/demo.mp4)
+https://user-images.githubusercontent.com/54672346/123477130-77754080-d5b2-11eb-8ef1-34aacaa10cae.mp4
 
 ## Installation
 
