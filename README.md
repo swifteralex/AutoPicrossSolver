@@ -1,6 +1,8 @@
 # AutoPicrossSolver
 A program that automatically solves Picross Touch levels with the press of one key.
 
+![AutoPicrossSolver Demo](demo/demo.mp4)
+
 ## Installation
 
 This project uses Python 3.7.6, with the following packages and their respective versions installed:
