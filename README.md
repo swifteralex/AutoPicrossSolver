@@ -3,7 +3,7 @@ A program that automatically solves Picross Touch levels with the press of one k
 
 ## Installation
 
-This project uses Python 3.7.6, with the following libraries and their respective versions installed:
+This project uses Python 3.7.6, with the following packages and their respective versions installed:
 
 ```
 pip install opencv-python==4.2.0.32
@@ -15,15 +15,11 @@ pip install h5py==2.10.0
 pip install PyAutoGUI==0.9.52
 
 pip install pynput==1.7.3
+
+pip install picross-solver==1.1.1
 ```
 
-This project also uses Node.js version 8, with the following library installed:
-
-```
-npm install nonogram-solver
-```
-
-Other versions of each library and language might work, but they haven't been tested.
+Other versions of Python and each package might work, but they haven't been tested.
 
 ## How to Use
 

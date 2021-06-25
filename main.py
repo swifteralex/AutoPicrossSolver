@@ -2,9 +2,9 @@ import time
 import cv2
 import numpy as np
 import pyautogui
-import subprocess
 import os
 import datetime
+from picross_solver import picross_solver as solver
 from tensorflow.keras.models import model_from_json
 from pynput import keyboard
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -13,7 +13,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 #########################################################
 #                   PROGRAM VARIABLES                   #
 
-click_speed = 0.028  # Time between each click in seconds
+click_speed = 0.029  # Time between each click in seconds
 exit_key = keyboard.Key.esc  # Key to exit the program
 start_key = keyboard.Key.enter  # Key to start the solver
 
@@ -140,7 +140,7 @@ def read_clue_images(input_images):
         input_img = input_img / 255
         reshaped = input_img.reshape(1, 20, 20, 1)
         # if the model isn't completely sure, it's probably looking at a col/row with just a zero
-        if np.amax(model.predict(reshaped)) < 0.999:
+        if np.amax(model.predict(reshaped)) < 0.997:
             return 0
         return int(model.predict_classes(reshaped))
 
@@ -159,7 +159,7 @@ def read_clue_images(input_images):
                 if i[r][19 - c] == 0:
                     right_column_hit = 19 - c if (right_column_hit == -1 and c != 0) else right_column_hit
         # if square is blank
-        if num_black_pixels < 10:
+        if num_black_pixels < 15:
             clues.append(-1)
             continue
         # if square is two digits
@@ -177,55 +177,32 @@ def read_clue_images(input_images):
 
 
 def solve(clues, clues_in_column, clues_in_row, puzzle_size):
-    # Write clue data to a .json file for the solver to read
-    f = open("input.json", "w")
-    f.write("{\n  \"columns\": [\n")
+    # Turn clue array into array of row/col constraints
+    row_constraints = []
+    col_constraints = []
+    puzzle = np.full((puzzle_size, puzzle_size), -1)
     for i in range(0, 2 * puzzle_size):
         len_clue_arr = clues_in_column if i < puzzle_size else clues_in_row
         clue_diff = 0 if i < puzzle_size else puzzle_size * (clues_in_column - clues_in_row)
-        f.write("    [")
+        constraints = col_constraints if i < puzzle_size else row_constraints
+        constraint = []
         for j in range(0, len_clue_arr):
             clue = clues[clue_diff + i * len_clue_arr + j]
             if clue == -1 and j == len_clue_arr - 1:
-                f.write("0")
+                constraint.append(0)
                 break
             elif clue == -1:
                 continue
             else:
-                f.write(str(clue))
-                if j != len_clue_arr - 1:
-                    f.write(", ")
-        f.write("]")
-        if i != puzzle_size - 1 and i != 2 * puzzle_size - 1:
-            f.write(",")
-        f.write("\n")
-        if i == puzzle_size - 1:
-            f.write("  ],\n  \"rows\": [\n")
-    f.write("  ]\n}")
-    f.close()
-    if subprocess.run(["npx", "nonogram-solver", "input.json"], capture_output=True, shell=True).returncode != 0:
-        raise RuntimeError("The solver wasn't able to create a solution.")
-    os.remove("input.json")
+                constraint.append(clue)
+        constraints.append(constraint)
 
-    # Get array of hits and misses from solver's output file
-    f = open("output/input.svg", "r")
-    lines = f.readlines()
-    last_line = lines[-1]
-    marks = []
-    for i in range(0, len(last_line) - 1):
-        mark = last_line[i:(i + 2)]
-        if mark == "#h":
-            marks.append(True)
-            i += 50
-        elif mark == "#m":
-            marks.append(False)
-            i += 50
-    f.close()
-    os.remove("output/input.svg")
-    os.rmdir("output")
-    if len(marks) < 25:
+    # Solve and return completed puzzle
+    if not solver.solve(row_constraints, col_constraints, puzzle):
+        raise RuntimeError("The puzzle wasn't able to be solved.")
+    if len(puzzle[0]) < 5:
         raise RuntimeError("The solved puzzle size was smaller than expected.")
-    return marks
+    return puzzle
 
 
 def on_press(key):
@@ -271,7 +248,7 @@ def on_press(key):
         # Using a solver, turn the clue array into an array of hits and misses
         time_a = datetime.datetime.now()
         try:
-            marks = solve(clues, clues_in_column, clues_in_row, puzzle_size)
+            puzzle = solve(clues, clues_in_column, clues_in_row, puzzle_size)
         except:
             print("!!! The image was registered, but the program ran into a problem with"
                   " the solver. Make sure that Picross Touch is in full-screen and is in"
@@ -279,24 +256,18 @@ def on_press(key):
                   " in view. If an error still occurs, try using only the Simple editor"
                   " and pick a new theme. If still an error occurs, there's likely an"
                   " issue with the digit recognition code.\n")
-            if os.path.exists("input.json"):
-                os.remove("input.json")
-            if os.path.exists("output"):
-                if os.path.exists("output/input.svg"):
-                    os.remove("output/input.svg")
-                os.rmdir("output")
             return
         time_delta = datetime.datetime.now() - time_a
         ms_diff = int(time_delta.total_seconds() * 1000)
         data = ["Finished solving puzzle", str(ms_diff) + "ms"]
         print("{:<32} {:>10}".format(*data))
 
-        # Using marks and pyautogui, automatically fill in the puzzle
+        # Using puzzle and pyautogui, automatically fill in the puzzle
         x = click_point[0]
         y = click_point[1]
-        for r in range(0, puzzle_size):
-            for c in range(0, puzzle_size):
-                if marks[r * puzzle_size + c]:
+        for r in puzzle:
+            for c in r:
+                if c:
                     pyautogui.moveTo(x, y, _pause=False)
                     pyautogui.mouseDown(_pause=False)
                     position1 = pyautogui.position()
@@ -315,11 +286,6 @@ def on_press(key):
         print("{:<25} {:>17}".format(*data), "\n")
 
 
-if subprocess.run(["npx", "nonogram-solver", "--version"], capture_output=True, shell=True).returncode != 0:
-    print("!!! It doesn't look like the nonogram solver is installed. Please make"
-          " sure Node.js version 8 is installed, and if it is, install the solver"
-          " by typing \"npm install nonogram-solver\" in the command line.")
-    exit(1)
 json_file = open("model_trained.json", "r")
 loaded_model_json = json_file.read()
 json_file.close()
