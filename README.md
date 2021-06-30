@@ -18,7 +18,7 @@ pip install PyAutoGUI==0.9.52
 
 pip install pynput==1.7.3
 
-pip install picross-solver==1.1.1
+pip install picross-solver==1.1.2
 ```
 
 Other versions of Python and each package might work, but they haven't been tested.
