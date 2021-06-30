@@ -13,7 +13,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 #########################################################
 #                   PROGRAM VARIABLES                   #
 
-click_speed = 0.029  # Time between each click in seconds
+click_speed = 0.030  # Time between each click in seconds
 exit_key = keyboard.Key.esc  # Key to exit the program
 start_key = keyboard.Key.enter  # Key to start the solver
 
