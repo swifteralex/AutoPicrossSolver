@@ -10,7 +10,7 @@ This project uses Python 3.7.6, with the following packages and their respective
 ```
 pip install opencv-python==4.2.0.32
 
-pip install tensorflow==2.0.0
+pip install tensorflow==2.12.0
 
 pip install h5py==2.10.0
 

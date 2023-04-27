@@ -139,10 +139,11 @@ def read_clue_images(input_images):
     def predict_clue_class(input_img):
         input_img = input_img / 255
         reshaped = input_img.reshape(1, 20, 20, 1)
+        predicted = model.predict(reshaped, verbose=0)
         # if the model isn't completely sure, it's probably looking at a col/row with just a zero
-        if np.amax(model.predict(reshaped)) < 0.997:
+        if np.amax(predicted) < 0.997:
             return 0
-        return int(model.predict_classes(reshaped))
+        return int(np.argmax(predicted, axis=1))
 
     clues = []
     zeros = np.full((20, 5), 255)
